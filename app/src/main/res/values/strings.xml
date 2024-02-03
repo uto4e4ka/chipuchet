@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">chipuchet</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="login_ru">Логин</string>
+    <string name="password_ru">Пароль</string>
+    <string name="userName_ru">Имя пользвателя</string>
 </resources>

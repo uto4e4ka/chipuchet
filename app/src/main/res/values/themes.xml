@@ -13,4 +13,23 @@
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+    <style name="MyTheme.ActionBar"
+        parent="@android:style/Widget.Holo.Light.ActionBar">
+        <item name="android:background">#BD9545</item>
+    </style>
+    <style name="Theme.Chipuchet.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+
+    </style>
+    <style name="Theme.MyApplication.AppBarOverlay"
+        parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="Theme.MyApplication.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+    <style name="Theme.Menu.Left" parent="">
+        <item name="android:listDivider">@drawable/gradient_round_menu</item>
+        <item name="android:dividerHorizontal">@color/app_color</item>
+    </style>
+    <style name="Base.Widget.AppCompat.ListView.Appcolor">
+        <item name="android:colorEdgeEffect">@color/app_color</item>
+    </style>
 </resources>
