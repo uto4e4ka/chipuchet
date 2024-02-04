@@ -23,105 +23,77 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.budiyev.android.codescanner.CodeScanner;
+import com.budiyev.android.codescanner.CodeScannerView;
+import com.budiyev.android.codescanner.DecodeCallback;
 import com.example.chipuchet.scaner.QRCodeFoundListener;
 import com.example.chipuchet.scaner.QRCodeImageAnalyzer;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.zxing.Result;
 
 import java.util.concurrent.ExecutionException;
 
 public class QRscan extends AppCompatActivity {
 
-    private PreviewView previewView;
-    private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
-    private static final int PERMISSION_REQUEST_CAMERA = 0;
-
-    private Button qrCodeFoundButton;
-    private String qrCode;
+    private CodeScanner mCodeScanner;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_qrscan);
 
-        previewView = findViewById(R.id.camera);
-        qrCodeFoundButton = findViewById(R.id.activity_main_qrCodeFoundButton);
-        qrCodeFoundButton.setVisibility(View.INVISIBLE);
-        qrCodeFoundButton.setOnClickListener(new View.OnClickListener() {
+        if (ContextCompat.checkSelfPermission(QRscan.this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_DENIED){
+            ActivityCompat.requestPermissions(QRscan.this, new String[] {Manifest.permission.CAMERA}, 123);
+        } else {
+            startScanning();
+        }
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 123) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Camera permission granted", Toast.LENGTH_LONG).show();
+                startScanning();
+            } else {
+                Toast.makeText(this, "Camera permission denied", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+    private void startScanning() {
+        CodeScannerView scannerView = findViewById(R.id.scanner_view);
+        mCodeScanner = new CodeScanner(this, scannerView);
+        mCodeScanner.setDecodeCallback(new DecodeCallback() {
             @Override
-            public void onClick(View v) {
-                Toast.makeText(getApplicationContext(), qrCode, Toast.LENGTH_SHORT).show();
-                Log.i(MainActivity.class.getSimpleName(), "QR Code Found: " + qrCode);
+            public void onDecoded(@NonNull final Result result) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(QRscan.this, result.getText(), Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
-
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this);
-        requestCamera();
-    }
-    private void requestCamera() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            startCamera();
-        } else {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
-                ActivityCompat.requestPermissions(QRscan.this, new String[]{Manifest.permission.CAMERA}, PERMISSION_REQUEST_CAMERA);
-            } else {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, PERMISSION_REQUEST_CAMERA);
+        scannerView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mCodeScanner.startPreview();
             }
+        });
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(mCodeScanner != null) {
+            mCodeScanner.startPreview();
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CAMERA) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera();
-            } else {
-                Toast.makeText(this, "Camera Permission Denied", Toast.LENGTH_SHORT).show();
-            }
+    protected void onPause() {
+        if(mCodeScanner != null) {
+            mCodeScanner.releaseResources();
         }
+        super.onPause();
     }
-    private void startCamera() {
-        cameraProviderFuture.addListener(() -> {
-            try {
-                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-                bindCameraPreview(cameraProvider);
-            } catch (ExecutionException | InterruptedException e) {
-                Toast.makeText(this, "Error starting camera " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
-        }, ContextCompat.getMainExecutor(this));
-    }
-
-    private void bindCameraPreview(@NonNull ProcessCameraProvider cameraProvider) {
-        previewView.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);
-
-        Preview preview = new Preview.Builder()
-                .build();
-
-        CameraSelector cameraSelector = new CameraSelector.Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_BACK)
-                .build();
-
-        preview.setSurfaceProvider(previewView.getSurfaceProvider());
-        ImageAnalysis imageAnalysis =
-                new ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build();
-
-        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), new QRCodeImageAnalyzer(new QRCodeFoundListener() {
-            @Override
-            public void onQRCodeFound(String _qrCode) {
-                qrCode = _qrCode;
-                qrCodeFoundButton.setVisibility(View.VISIBLE);
-                Log.i("a","founded");
-            }
-
-            @Override
-            public void qrCodeNotFound() {
-                qrCodeFoundButton.setVisibility(View.INVISIBLE);
-                Log.i("a","not founded");
-            }
-        }));
-
-        cameraProvider.bindToLifecycle((LifecycleOwner)this, cameraSelector, preview);
-    }
-
 }
